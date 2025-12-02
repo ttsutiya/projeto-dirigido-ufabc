@@ -1,4 +1,5 @@
 from enum import Enum
+
 import numpy as np
 
 
@@ -14,7 +15,7 @@ class Magfield:
         self,
         mode: FieldType = FieldType.CONSTANT,
         field_constant: float = 1,
-        origin: np.array = np.array([0, 0, 0]),
+        origin=np.array([0, 0, 0]),
     ):
         self.mode = mode
         self.origin = origin
@@ -29,36 +30,46 @@ class Magfield:
 
         self._field_calculator = field_calculators[self.mode]
 
-    def magfield(self, position: np.array):
-        magfield = self._field_calculator(position)
+    def magfield(self, pos):
+        magfield = self._field_calculator(pos)
         return magfield
 
-    def _distance(self, position: np.array) -> float:
-        diff = position - self.origin
+    def _distance(self, pos):
+        diff = pos - self.origin
         r = np.linalg.norm(diff)
         return r
 
-    def _calcualtor_constant(self, position: np.array):
-        return self.field_constant
+    def _calcualtor_constant(self, pos):
+        magfield = np.array([0, 0, self.field_constant])
+        return magfield
 
-    def _calcualtor_inv_r(self, position: np.array):
-        r = position[3]  # distance form the plane z=0
-
-        if not r:
-            return None
-
-        return self.field_cosntant * 1 / r
-
-    def _calcualtor_inv_r2(self, position: np.array):
-        r = position[3]  # distance form the plane z=0
+    def _calcualtor_inv_r(self, pos):
+        r = pos[2]  # distance form the plane z=0
 
         if not r:
             return None
 
-        return self.field_cosntant * 1 / pow(r, 2)
+        magfield = np.array([0, 0, self.field_constant * 1 / r])
+        return magfield
 
-    def _calcualtor_dipole(self, position: np.array):
-        # B[0] =  (3*initialB * pos[0] * pos[2]) / pow(r,5);
-        # B[1] =  (3*initialB * pos[1] * pos[2]) / pow(r,5);
-        # B[2] =  (initialB * (3*pow(pos[2],2) - pow(r,2))) / pow(r,5);
-        pass
+    def _calcualtor_inv_r2(self, pos):
+        r = pos[2]  # distance form the plane z=0
+
+        if not r:
+            return None
+
+        magfield = np.array([0, 0, self.field_constant * 1 / pow(r, 2)])
+        return magfield
+
+    def _calcualtor_dipole(self, pos):
+        r = self._distance(pos)
+
+        if not r:
+            return None
+
+        Bx = (3 * self.field_constant * pos[0] * pos[2]) / pow(r, 5)
+        By = (3 * self.field_constant * pos[1] * pos[2]) / pow(r, 5)
+        Bz = (self.field_constant * (3 * pow(pos[2], 2) - pow(r, 2))) / pow(r, 5)
+
+        magfield = np.array([Bx, By, Bz])
+        return magfield
