@@ -102,3 +102,57 @@ class TrajectoryAnimation(ThreeDScene):
         # )
 
         self.wait(3)
+
+
+class LorentzDerivation(Scene):
+    def construct(self):
+        full_lorentz = MathTex(
+            r"\mathbf{F} = q(\mathbf{E} + \mathbf{v} \times \mathbf{B})"
+        )
+        full_lorentz.to_edge(UP).shift(DOWN * 0.5)
+        self.play(Write(full_lorentz))
+
+        magnetic_force = MathTex(r"\mathbf{F} = q( \mathbf{v} \times \mathbf{B})")
+        magnetic_force.to_edge(UP).shift(DOWN * 0.5)
+        self.play(ReplacementTransform(full_lorentz, magnetic_force))
+
+        newton_second_law = MathTex(r"\mathbf{F}" r"=m\mathbf{a}")
+        newton_second_law.to_edge(UP).shift(DOWN * 1.5)
+        self.play(Write(newton_second_law))
+
+        merged_equation = MathTex(
+            r"m\mathbf{a}", r"=", r"q(\mathbf{v} \times \mathbf{B})"
+        )
+
+        self.play(
+            ReplacementTransform(newton_second_law, merged_equation),
+            ReplacementTransform(magnetic_force, merged_equation),
+        )
+
+        acc = MathTex(r"\mathbf{a}", r"=", r"\frac{q}{m}(\mathbf{v} \times \mathbf{B})")
+        self.play(ReplacementTransform(merged_equation, acc))
+
+        dxdt = MathTex(
+            r"\frac{d\mathbf{x}}{dt}",
+            r"=",
+            r"\mathbf{v}",
+        ).shift(UP * 1.5)
+        dvdt = MathTex(
+            r"\frac{d\mathbf{v}}{dt}",
+            r"=",
+            r"\mathbf{a}",
+        )
+
+        self.play(
+            Write(dxdt),
+            Write(dvdt),
+            acc.animate.shift(DOWN * 1.5),
+        )
+
+        merge_dvdt = MathTex(
+            r"\frac{d\mathbf{v}}{dt}",
+            r"=",
+            r"\frac{q}{m}(\mathbf{v} \times \mathbf{B})",
+        )
+        merge_dvdt
+        self.play(ReplacementTransform(dvdt, merge_dvdt), FadeOut(acc))
