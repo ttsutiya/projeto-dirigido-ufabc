@@ -90,10 +90,7 @@ def preset(mode: Presets = Presets.DIPOLE_ELECTRON) -> tuple[Particle, Magfield]
             return part, mag
 
 
-def main():
-    part, mag = preset(Presets.DIPOLE_ELECTRON)
-    # part, mag = preset(Presets.DIPOLE_PROTON)
-
+def solve(part, mag, t_span):
     def func(t, y):
         # dx/dt = v
         # dv/dt = q/m (v X B)
@@ -106,14 +103,32 @@ def main():
 
         return dydt
 
-    # t_span = [0, 1e2]
-    t_span = [0, 3e3]
     t_points = np.linspace(t_span[0], t_span[1], int(t_span[1] * 1e2))
     initial = np.concatenate((part.pos, part.vel))
     sol = solve_ivp(func, t_span, initial, t_eval=t_points, atol=1e-6, rtol=1e-3)
-    x = sol.y[0, :]
-    y = sol.y[1, :]
-    z = sol.y[2, :]
+    return sol
+
+
+def main():
+    mode = Presets.DIPOLE_ELECTRON
+    part, mag = preset(mode)
+
+    t_span = [0, 1e4]
+    sol = solve(part, mag, t_span)
+
+    t = sol.t
+    x, y, z = sol.y[:3]
+
+    file_name = f"{str.lower(mode.name)}_trajectory.csv"
+    data = np.vstack([t, x, y, z]).T
+
+    np.savetxt(
+        file_name,
+        data,
+        delimiter=",",
+        fmt="%.8f",
+        header="time,x_position,y_position,z_position",
+    )
 
     plot(x, y, z)
 
