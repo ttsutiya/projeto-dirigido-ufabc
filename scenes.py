@@ -156,3 +156,169 @@ class LorentzDerivation(Scene):
         )
         merge_dvdt
         self.play(ReplacementTransform(dvdt, merge_dvdt), FadeOut(acc))
+
+
+class NumericalMethod(Scene):
+    def construct(self):
+        axes = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 10, 1],
+            x_length=7,
+            y_length=5,
+        )
+
+        labels = axes.get_axis_labels(x_label=r"t", y_label=r"y")
+        self.add(axes, labels)
+
+        x_unit = axes.get_x_axis().get_unit_size()
+        y_unit = axes.get_y_axis().get_unit_size()
+
+        def func(t):
+            return 0.1 * t**2 + 1
+
+        def derivative_func(t):
+            return 0.2 * t
+
+        exact_curve = axes.plot(func, color=BLUE)
+        self.play(Create(exact_curve), run_time=1.5)
+
+        # Euler method
+        euler_title = Text("Método de Euler", color=RED, font_size=40).to_edge(UP)
+        self.play(Write(euler_title))
+
+        t0 = 2.0
+        y0 = func(t0)
+        h = 5.0
+
+        start_coords = axes.coords_to_point(t0, y0)
+        start_dot = Dot(start_coords, color=YELLOW)
+        start_label = MathTex(r"(t_i, y_i)", font_size=30).next_to(
+            start_dot, UP + LEFT, buff=0.1
+        )
+
+        h_line = Line(
+            axes.coords_to_point(t0, 0.5),
+            axes.coords_to_point(t0 + h, 0.5),
+            color=RED,
+            stroke_width=2,
+        )
+        h_label = MathTex(r"h", font_size=35).next_to(h_line, UP, buff=0.1)
+
+        self.add(start_dot)
+        self.play(Write(start_label))
+        self.play(Create(h_line), Write(h_label))
+
+        k1 = derivative_func(t0)
+
+        k1_angle = np.arctan(k1 * y_unit / x_unit)
+        k1_line = Line(
+            start_dot.get_center()
+            + 0.5 * np.array([-np.cos(k1_angle), -np.sin(k1_angle), 0]),
+            start_dot.get_center()
+            + 0.5 * np.array([np.cos(k1_angle), np.sin(k1_angle), 0]),
+            color=PURPLE_A,
+        )
+        k1_label = MathTex(r"k1", font_size=20).next_to(k1_line, DOWN, buff=0.1)
+
+        self.play(Create(k1_line), Write(k1_label))
+
+        t1 = t0 + h
+        y1_euler = y0 + h * k1
+
+        euler_step_line = Line(
+            start_dot.get_center(), axes.coords_to_point(t1, y1_euler), color=RED
+        )
+        euler_dot = Dot(axes.coords_to_point(t1, y1_euler), color=RED)
+        euler_label = MathTex(r"(t_{i+1}, y_{i+1})", font_size=30).next_to(
+            euler_dot, RIGHT, buff=0.1
+        )
+
+        self.play(Create(euler_step_line), Create(euler_dot), Write(euler_label))
+
+        y1_exact = func(t1)
+        exact_dot_t1 = Dot(axes.coords_to_point(t1, y1_exact), color=YELLOW)
+
+        error_line = DashedLine(
+            euler_dot.get_center(), exact_dot_t1.get_center(), color=GRAY
+        )
+        error_label = MathTex(
+            r"Erro",  # Usa \text{} para o texto não-matemático
+            color=RED_E,
+            font_size=30,
+        ).next_to(error_line, RIGHT, buff=0.2)
+
+        self.play(Create(exact_dot_t1))
+        self.play(Create(error_line), Write(error_label))
+
+        # RK2
+
+        self.play(
+            FadeOut(euler_step_line),
+            FadeOut(euler_dot),
+            FadeOut(euler_label),
+            FadeOut(error_line),
+            FadeOut(error_label),
+            FadeOut(exact_dot_t1),
+            FadeOut(euler_title),
+            run_time=0.8,
+        )
+        rk2_title = Text("Runge-Kutta 2", color=RED, font_size=40).to_edge(UP)
+        self.play(Write(rk2_title))
+
+        t_mid = t0 + h / 2
+        y_k1_mid = y0 + (h / 2) * k1
+
+        mid_dot = Dot(axes.coords_to_point(t_mid, y_k1_mid), color=PURPLE)
+        mid_estimate_line = DashedLine(
+            start_dot.get_center(), mid_dot.get_center(), color=PURPLE
+        )
+
+        self.play(Create(mid_estimate_line), Create(mid_dot), run_time=1)
+
+        k2 = derivative_func(t_mid)
+
+        k2_angle = np.arctan(k2 * y_unit / x_unit)
+        k2_line = Line(
+            mid_dot.get_center()
+            + 0.5 * np.array([-np.cos(k2_angle), -np.sin(k2_angle), 0]),
+            mid_dot.get_center()
+            + 0.5 * np.array([np.cos(k2_angle), np.sin(k2_angle), 0]),
+            color=PURPLE_A,
+        )
+        k2_label = MathTex(r"k2", font_size=20).next_to(k2_line, DOWN, buff=0.1)
+
+        self.play(Create(k2_line), Write(k2_label))
+
+        k_avg = 0.5 * (k1 + k2)
+
+        y1_rk2 = y0 + h * k_avg
+        rk2_dot = Dot(axes.coords_to_point(t1, y1_rk2), color=GREEN)
+        rk2_label = MathTex(r"(t_{i+1}, y_{i+1})", font_size=30).next_to(
+            rk2_dot, RIGHT, buff=0.1
+        )
+
+        rk2_final_line = Line(start_dot.get_center(), rk2_dot.get_center(), color=GREEN)
+
+        self.play(
+            Create(rk2_final_line),
+            Create(rk2_dot),
+            Create(rk2_label),
+        )
+
+        y1_exact = func(t1)
+        exact_dot_t1 = Dot(axes.coords_to_point(t1, y1_exact), color=YELLOW)
+
+        rk2_error_line = DashedLine(
+            rk2_dot.get_center(), exact_dot_t1.get_center(), color=GRAY_A
+        )
+        k2_error_label = MathTex(
+            r"Erro",  # Usa \text{} para o texto não-matemático
+            color=RED_E,
+            font_size=30,
+        ).next_to(rk2_error_line, RIGHT, buff=0.3)
+
+        self.play(Create(exact_dot_t1))
+        self.play(Create(rk2_error_line), Write(k2_error_label))
+
+        self.play(FadeOut(VGroup(*self.mobjects)))
+        self.wait()
