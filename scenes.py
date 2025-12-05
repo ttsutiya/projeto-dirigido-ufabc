@@ -158,7 +158,119 @@ class LorentzDerivation(Scene):
         self.play(ReplacementTransform(dvdt, merge_dvdt), FadeOut(acc))
 
 
-class NumericalMethod(Scene):
+class NumericalMethod1(Scene):
+    def construct(self):
+        axes = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 10, 1],
+            x_length=7,
+            y_length=5,
+        )
+
+        labels = axes.get_axis_labels(x_label=r"t", y_label=r"y")
+        self.wait()
+        self.play(Create(axes), Create(labels))
+
+        x_unit = axes.get_x_axis().get_unit_size()
+        y_unit = axes.get_y_axis().get_unit_size()
+
+        def func(t):
+            return 0.1 * t**2 + 1
+
+        def derivative_func(t):
+            return 0.2 * t
+
+        exact_curve = axes.plot(func, color=BLUE)
+        self.play(Create(exact_curve))
+
+        # Euler method
+        euler_title = Text("Método de Euler", color=RED, font_size=40).to_edge(UP)
+        self.play(Write(euler_title))
+        self.wait()
+
+        t0 = 2.0
+        y0 = func(t0)
+        h = 5.0
+
+        start_coords = axes.coords_to_point(t0, y0)
+        start_dot = Dot(start_coords, color=YELLOW)
+        start_label = MathTex(r"(t_i, y_i)", font_size=30).next_to(
+            start_dot, UP + LEFT, buff=0.1
+        )
+        self.wait()
+
+        h_line = Line(
+            axes.coords_to_point(t0, 0.5),
+            axes.coords_to_point(t0 + h, 0.5),
+            color=RED,
+            stroke_width=2,
+        )
+        h_label = MathTex(r"h", font_size=35).next_to(h_line, UP, buff=0.1)
+
+        self.add(start_dot)
+        self.play(Write(start_label))
+        self.play(Create(h_line), Write(h_label))
+        self.wait()
+
+        k1 = derivative_func(t0)
+        self.wait()
+
+        k1_angle = np.arctan(k1 * y_unit / x_unit)
+        k1_line = Line(
+            start_dot.get_center()
+            + 0.5 * np.array([-np.cos(k1_angle), -np.sin(k1_angle), 0]),
+            start_dot.get_center()
+            + 0.5 * np.array([np.cos(k1_angle), np.sin(k1_angle), 0]),
+            color=PURPLE_A,
+        )
+        k1_label = MathTex(r"k1", font_size=20).next_to(k1_line, DOWN, buff=0.1)
+
+        self.play(Create(k1_line), Write(k1_label))
+        self.wait()
+
+        t1 = t0 + h
+        y1_euler = y0 + h * k1
+
+        euler_step_line = Line(
+            start_dot.get_center(), axes.coords_to_point(t1, y1_euler), color=RED
+        )
+        euler_dot = Dot(axes.coords_to_point(t1, y1_euler), color=RED)
+        euler_label = MathTex(r"(t_{i+1}, y_{i+1})", font_size=30).next_to(
+            euler_dot, RIGHT, buff=0.1
+        )
+
+        self.play(Create(euler_step_line), Create(euler_dot), Write(euler_label))
+        self.wait()
+
+        y1_exact = func(t1)
+        exact_dot_t1 = Dot(axes.coords_to_point(t1, y1_exact), color=YELLOW)
+
+        error_line = DashedLine(
+            euler_dot.get_center(), exact_dot_t1.get_center(), color=GRAY
+        )
+        error_label = MathTex(
+            r"Erro",  # Usa \text{} para o texto não-matemático
+            color=RED_E,
+            font_size=30,
+        ).next_to(error_line, RIGHT, buff=0.2)
+
+        self.play(Create(exact_dot_t1))
+        self.play(Create(error_line), Write(error_label))
+        self.wait()
+
+        self.play(
+            FadeOut(euler_step_line),
+            FadeOut(euler_dot),
+            FadeOut(euler_label),
+            FadeOut(error_line),
+            FadeOut(error_label),
+            FadeOut(exact_dot_t1),
+            FadeOut(euler_title),
+            run_time=0.8,
+        )
+
+
+class NumericalMethod2(Scene):
     def construct(self):
         axes = Axes(
             x_range=[0, 10, 1],
@@ -180,16 +292,11 @@ class NumericalMethod(Scene):
             return 0.2 * t
 
         exact_curve = axes.plot(func, color=BLUE)
-        self.play(Create(exact_curve), run_time=1.5)
-
-        # Euler method
-        euler_title = Text("Método de Euler", color=RED, font_size=40).to_edge(UP)
-        self.play(Write(euler_title))
+        self.add(exact_curve)
 
         t0 = 2.0
         y0 = func(t0)
         h = 5.0
-
         start_coords = axes.coords_to_point(t0, y0)
         start_dot = Dot(start_coords, color=YELLOW)
         start_label = MathTex(r"(t_i, y_i)", font_size=30).next_to(
@@ -205,8 +312,6 @@ class NumericalMethod(Scene):
         h_label = MathTex(r"h", font_size=35).next_to(h_line, UP, buff=0.1)
 
         self.add(start_dot)
-        self.play(Write(start_label))
-        self.play(Create(h_line), Write(h_label))
 
         k1 = derivative_func(t0)
 
@@ -219,51 +324,15 @@ class NumericalMethod(Scene):
             color=PURPLE_A,
         )
         k1_label = MathTex(r"k1", font_size=20).next_to(k1_line, DOWN, buff=0.1)
-
-        self.play(Create(k1_line), Write(k1_label))
+        self.add(k1_line, k1_label)
 
         t1 = t0 + h
-        y1_euler = y0 + h * k1
-
-        euler_step_line = Line(
-            start_dot.get_center(), axes.coords_to_point(t1, y1_euler), color=RED
-        )
-        euler_dot = Dot(axes.coords_to_point(t1, y1_euler), color=RED)
-        euler_label = MathTex(r"(t_{i+1}, y_{i+1})", font_size=30).next_to(
-            euler_dot, RIGHT, buff=0.1
-        )
-
-        self.play(Create(euler_step_line), Create(euler_dot), Write(euler_label))
-
-        y1_exact = func(t1)
-        exact_dot_t1 = Dot(axes.coords_to_point(t1, y1_exact), color=YELLOW)
-
-        error_line = DashedLine(
-            euler_dot.get_center(), exact_dot_t1.get_center(), color=GRAY
-        )
-        error_label = MathTex(
-            r"Erro",  # Usa \text{} para o texto não-matemático
-            color=RED_E,
-            font_size=30,
-        ).next_to(error_line, RIGHT, buff=0.2)
-
-        self.play(Create(exact_dot_t1))
-        self.play(Create(error_line), Write(error_label))
 
         # RK2
-
-        self.play(
-            FadeOut(euler_step_line),
-            FadeOut(euler_dot),
-            FadeOut(euler_label),
-            FadeOut(error_line),
-            FadeOut(error_label),
-            FadeOut(exact_dot_t1),
-            FadeOut(euler_title),
-            run_time=0.8,
-        )
+        self.wait()
         rk2_title = Text("Runge-Kutta 2", color=RED, font_size=40).to_edge(UP)
         self.play(Write(rk2_title))
+        self.wait()
 
         t_mid = t0 + h / 2
         y_k1_mid = y0 + (h / 2) * k1
@@ -273,7 +342,7 @@ class NumericalMethod(Scene):
             start_dot.get_center(), mid_dot.get_center(), color=PURPLE
         )
 
-        self.play(Create(mid_estimate_line), Create(mid_dot), run_time=1)
+        self.play(Create(mid_estimate_line), Create(mid_dot))
 
         k2 = derivative_func(t_mid)
 
@@ -288,6 +357,7 @@ class NumericalMethod(Scene):
         k2_label = MathTex(r"k2", font_size=20).next_to(k2_line, DOWN, buff=0.1)
 
         self.play(Create(k2_line), Write(k2_label))
+        self.wait()
 
         k_avg = 0.5 * (k1 + k2)
 
@@ -304,6 +374,7 @@ class NumericalMethod(Scene):
             Create(rk2_dot),
             Create(rk2_label),
         )
+        self.wait()
 
         y1_exact = func(t1)
         exact_dot_t1 = Dot(axes.coords_to_point(t1, y1_exact), color=YELLOW)
@@ -319,6 +390,57 @@ class NumericalMethod(Scene):
 
         self.play(Create(exact_dot_t1))
         self.play(Create(rk2_error_line), Write(k2_error_label))
-
-        self.play(FadeOut(VGroup(*self.mobjects)))
         self.wait()
+
+        self.play(FadeOut(Group(*self.mobjects)))
+        self.wait()
+
+
+class Intro(Scene):
+    def construct(self):
+        main_title = Text("Trajetória de Partículas", font_size=50, color=BLUE_A).shift(
+            UP * 1.0
+        )
+        main_title2 = Text("em Campos Magnéticos", font_size=50, color=BLUE_A).shift(
+            UP * 0.25
+        )
+
+        self.play(Write(main_title))
+        self.play(Write(main_title2))
+        self.wait(1)
+
+        subtitle = Text("Explicação Qualitativa", font_size=30, color=GREEN_C)
+        subtitle.next_to(main_title2, DOWN, buff=0.5)
+
+        self.play(Write(subtitle), run_time=1.5)
+        self.wait(1)
+
+        self.play(
+            FadeOut(main_title), FadeOut(main_title2), FadeOut(subtitle), run_time=1
+        )
+        self.wait()
+
+
+class Conteudo(Scene):
+    def construct(self):
+        list_title = Text("Tópicos", font_size=50, color=YELLOW_A)
+        list_title.to_edge(UP)
+        self.wait()
+        self.play(Write(list_title), run_time=1)
+        self.wait(0.5)
+
+        bullet_points = VGroup(
+            Tex(r"\text{Força de Lorentz}", font_size=40),
+            Tex(r"\text{Método de Euler}", font_size=40),
+            Tex(r"\text{Runge-Kutta 2}", font_size=40),
+            Tex(r"\text{Simulação Runge-Kutta 4}", font_size=40),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.8)
+
+        bullet_points.next_to(list_title, DOWN, buff=2)
+
+        for i, point in enumerate(bullet_points):
+            self.play(FadeIn(point, shift=LEFT), run_time=0.8)
+            self.wait(1.5)
+
+        self.wait(2)
+        self.play(FadeOut(VGroup(list_title, bullet_points)), run_time=1)
